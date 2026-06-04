@@ -1,0 +1,41 @@
+name: PR-to-PRD Notion bot
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  generate-prd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install pr-to-prd script
+        working-directory: scripts/pr-to-prd
+        run: npm install --no-audit --no-fund
+
+      - name: Generate PRD and post to Notion
+        working-directory: scripts/pr-to-prd
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          NOTION_PARENT_PAGE_ID: 375cf559c10f80a7885ac125e2b1b63a
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node generate-prd.mjs
