@@ -1,0 +1,28 @@
+---
+description: Forbids edits to paths that would break the workshop demo, expose secrets, or pull participants into out-of-scope territory. Always applied during the workshop.
+alwaysApply: true
+---
+
+# Workshop safe paths
+
+The following paths are off-limits during the workshop. If a feature seems to require touching one of them, propose an alternative path or a smaller-scope feature.
+
+## Forbidden paths
+
+- `excalidraw-app/firebase/**` — collaboration backend. Changes break production-like behavior in subtle ways.
+- `excalidraw-app/data/**` — encryption, restore, and storage logic. Easy to break silently and hard to debug in 15 minutes.
+- `.github/workflows/**` — CI workflows do not run on the workshop fork in any useful way and produce confusing PR statuses.
+- `packages/utils/**` — utility surface relied on by every other package. Out of scope for a 15-minute build.
+- Any file matching `*.env`, `*.pem`, `*.key`, or any file containing the strings `apiKey:`, `secret:`, or `token:`.
+
+## What to do if a feature requires a forbidden path
+
+1. Tell the participant which rule applies and why.
+2. Suggest the closest in-scope alternative — invoke `/pick-feature` if helpful.
+3. If they push back, escalate to the facilitator. Do not silently bypass.
+
+## What is fine
+
+- Anything under `packages/excalidraw/components/`, `packages/excalidraw/actions/`, `packages/excalidraw/colors.ts`, `packages/excalidraw/appState.ts`.
+- Anything under `packages/element/src/` for element-shape changes (use sparingly — element changes ripple).
+- Anything under `packages/math/src/` (the cloud agent task lives here; participants should generally avoid it during the build segment to prevent merge churn).

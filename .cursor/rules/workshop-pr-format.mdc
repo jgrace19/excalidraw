@@ -1,0 +1,40 @@
+---
+description: Workshop PR titles use a conventional commit prefix and PR bodies follow a parseable template so the Notion documentation automation can title and structure each generated feature doc.
+alwaysApply: true
+---
+
+# Workshop PR format
+
+## Title
+
+Use a conventional commit prefix followed by a colon and a short imperative description:
+
+- `feat:` — user-visible feature.
+- `fix:` — bug fix.
+- `docs:` — documentation only.
+- `style:` — formatting, no logic change.
+- `refactor:` — internal change, no behavior change.
+- `test:` — test-only change.
+- `chore:` — tooling, dependencies, etc.
+
+Examples:
+
+- `feat: add reset zoom button to footer`
+- `fix: correct default stroke width`
+- `docs(math): improve JSDoc coverage`
+
+## Body
+
+Follow `.github/PULL_REQUEST_TEMPLATE.md`. The body must contain these four sections in this order, with the headings exactly as written:
+
+1. `## Summary` — one or two sentences describing what the PR does.
+2. `## What changed` — bullet list of files or areas modified.
+3. `## Why` — short rationale or user benefit.
+4. `## Screenshots / demo` — image, video, or "N/A" if non-visual.
+
+The Notion documentation automation parses these sections to title and structure each generated feature doc. Sections must be present and labeled exactly as specified, or the automation will fall back to a generic template and the resulting Notion doc will look unfinished.
+
+## When using the built-in Create Branch & Commit button
+
+- Cursor will propose a branch name and commit message based on context. The `workshop-branch-naming` rule constrains the branch name; this rule constrains the commit message and the PR text generated when you push.
+- If the proposed commit message lacks a conventional prefix, edit it before confirming.
