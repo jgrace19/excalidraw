@@ -41,6 +41,7 @@ import {
   canHaveArrowheads,
   getTargetElements,
   hasBackground,
+  hasShadow,
   hasStrokeStyle,
   hasStrokeWidth,
 } from "../scene";
@@ -241,6 +242,10 @@ export const SelectedShapeActions = ({
         <>{renderAction("changeArrowhead")}</>
       )}
 
+      {(hasShadow(appState.activeTool.type) ||
+        targetElements.some((element) => hasShadow(element.type))) &&
+        renderAction("changeShadow")}
+
       {renderAction("changeOpacity")}
 
       <fieldset>
@@ -408,6 +413,9 @@ const CombinedShapeProperties = ({
                   canChangeRoundness(element.type),
                 )) &&
                 renderAction("changeRoundness")}
+              {(hasShadow(appState.activeTool.type) ||
+                targetElements.some((element) => hasShadow(element.type))) &&
+                renderAction("changeShadow")}
               {renderAction("changeOpacity")}
             </div>
           </PropertiesPopover>

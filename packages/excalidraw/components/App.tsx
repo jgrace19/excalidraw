@@ -4140,6 +4140,7 @@ class App extends React.Component<AppProps, AppState> {
       roundness: null,
       roughness: this.state.currentItemRoughness,
       opacity: this.state.currentItemOpacity,
+      shadow: this.state.currentItemShadow,
       text,
       fontSize: this.state.currentItemFontSize,
       fontFamily: this.state.currentItemFontFamily,
@@ -6308,6 +6309,7 @@ class App extends React.Component<AppProps, AppState> {
         strokeStyle: this.state.currentItemStrokeStyle,
         roughness: this.state.currentItemRoughness,
         opacity: this.state.currentItemOpacity,
+        shadow: this.state.currentItemShadow,
         text: "",
         fontSize,
         fontFamily,
@@ -9038,6 +9040,7 @@ class App extends React.Component<AppProps, AppState> {
       strokeStyle: this.state.currentItemStrokeStyle,
       roughness: this.state.currentItemRoughness,
       opacity: this.state.currentItemOpacity,
+      shadow: this.state.currentItemShadow,
       roundness: null,
       simulatePressure,
       locked: false,
@@ -9098,6 +9101,7 @@ class App extends React.Component<AppProps, AppState> {
       roughness: this.state.currentItemRoughness,
       roundness: this.getCurrentItemRoundness("iframe"),
       opacity: this.state.currentItemOpacity,
+      shadow: this.state.currentItemShadow,
       locked: false,
       width,
       height,
@@ -9151,6 +9155,7 @@ class App extends React.Component<AppProps, AppState> {
       roughness: this.state.currentItemRoughness,
       roundness: this.getCurrentItemRoundness("embeddable"),
       opacity: this.state.currentItemOpacity,
+      shadow: this.state.currentItemShadow,
       locked: false,
       width: embedLink.intrinsicSize.w,
       height: embedLink.intrinsicSize.h,
@@ -9198,6 +9203,7 @@ class App extends React.Component<AppProps, AppState> {
       roughness: this.state.currentItemRoughness,
       roundness: null,
       opacity: this.state.currentItemOpacity,
+      shadow: this.state.currentItemShadow,
       locked: false,
       frameId: topLayerFrame ? topLayerFrame.id : null,
       x: gridX - placeholderSize / 2,
@@ -9349,6 +9355,7 @@ class App extends React.Component<AppProps, AppState> {
               strokeStyle: this.state.currentItemStrokeStyle,
               roughness: this.state.currentItemRoughness,
               opacity: this.state.currentItemOpacity,
+              shadow: this.state.currentItemShadow,
               roundness:
                 this.state.currentItemArrowType === ARROW_TYPE.round
                   ? { type: ROUNDNESS.PROPORTIONAL_RADIUS }
@@ -9376,6 +9383,7 @@ class App extends React.Component<AppProps, AppState> {
               strokeStyle: this.state.currentItemStrokeStyle,
               roughness: this.state.currentItemRoughness,
               opacity: this.state.currentItemOpacity,
+              shadow: this.state.currentItemShadow,
               roundness:
                 this.state.currentItemRoundness === "round"
                   ? { type: ROUNDNESS.PROPORTIONAL_RADIUS }
@@ -9536,6 +9544,7 @@ class App extends React.Component<AppProps, AppState> {
       strokeStyle: this.state.currentItemStrokeStyle,
       roughness: this.state.currentItemRoughness,
       opacity: this.state.currentItemOpacity,
+      shadow: this.state.currentItemShadow,
       roundness: this.getCurrentItemRoundness(elementType),
       locked: false,
       frameId: topLayerFrame ? topLayerFrame.id : null,
@@ -9582,9 +9591,10 @@ class App extends React.Component<AppProps, AppState> {
     const constructorOpts = {
       x: gridX,
       y: gridY,
-      opacity: this.state.currentItemOpacity,
-      locked: false,
       ...FRAME_STYLE,
+      opacity: this.state.currentItemOpacity,
+      shadow: this.state.currentItemShadow,
+      locked: false,
     } as const;
 
     const frame =

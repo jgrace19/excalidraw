@@ -12,6 +12,7 @@ import {
   DEFAULT_FONT_SIZE,
   FONT_FAMILY,
   ROUNDNESS,
+  SHADOW,
   STROKE_WIDTH,
   VERTICAL_ALIGN,
   KEYS,
@@ -703,6 +704,62 @@ export const actionChangeStrokeStyle = register<
             (element) => element.hasOwnProperty("strokeStyle"),
             (hasSelection) =>
               hasSelection ? null : appState.currentItemStrokeStyle,
+          )}
+          onChange={(value) => updateData(value)}
+        />
+      </div>
+    </fieldset>
+  ),
+});
+
+export const actionChangeShadow = register<ExcalidrawElement["shadow"]>({
+  name: "changeShadow",
+  label: "labels.shadow",
+  trackEvent: false,
+  perform: (elements, appState, value) => {
+    return {
+      elements: changeProperty(elements, appState, (el) =>
+        newElementWith(el, {
+          shadow: value,
+        }),
+      ),
+      appState: { ...appState, currentItemShadow: value },
+      captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+    };
+  },
+  PanelComponent: ({ elements, appState, updateData, app, data }) => (
+    <fieldset>
+      <legend>{t("labels.shadow")}</legend>
+      <div className="buttonList">
+        <RadioSelection
+          group="shadow"
+          options={[
+            {
+              value: SHADOW.none,
+              text: t("labels.shadow_none"),
+              icon: StrokeWidthBaseIcon,
+              testId: "shadow-none",
+            },
+            {
+              value: SHADOW.soft,
+              text: t("labels.shadow_soft"),
+              icon: StrokeWidthBoldIcon,
+              testId: "shadow-soft",
+            },
+            {
+              value: SHADOW.strong,
+              text: t("labels.shadow_strong"),
+              icon: StrokeWidthExtraBoldIcon,
+              testId: "shadow-strong",
+            },
+          ]}
+          value={getFormValue(
+            elements,
+            app,
+            (element) => element.shadow,
+            (element) => element.hasOwnProperty("shadow"),
+            (hasSelection) =>
+              hasSelection ? null : appState.currentItemShadow,
           )}
           onChange={(value) => updateData(value)}
         />

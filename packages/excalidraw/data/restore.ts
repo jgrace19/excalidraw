@@ -358,6 +358,7 @@ const restoreElementWithProperties = <
     roughness: element.roughness ?? DEFAULT_ELEMENT_PROPS.roughness,
     opacity:
       element.opacity == null ? DEFAULT_ELEMENT_PROPS.opacity : element.opacity,
+    shadow: element.shadow ?? DEFAULT_ELEMENT_PROPS.shadow,
     angle: element.angle || (0 as Radians),
     x: extra.x ?? element.x ?? 0,
     y: extra.y ?? element.y ?? 0,
