@@ -1,0 +1,29 @@
+---
+description: Lightweight style guide for code under packages/excalidraw. The code review automation enforces these rules, so they are deliberately concrete and citable.
+globs: ["packages/excalidraw/**"]
+---
+
+# Workshop style
+
+Apply these to any code modified under `packages/excalidraw/` during the workshop. The list is short on purpose — the code review automation needs concrete things to flag, and an over-broad style guide produces vague comments.
+
+## Required
+
+- Use `const` over `let` unless reassignment is genuinely needed.
+- Prefer existing components in `packages/excalidraw/components/` over building new ones from scratch.
+- Reuse existing color tokens and SCSS variables. Avoid inline hex values when a token exists.
+- React components must be function components. No class components.
+- TypeScript: avoid `any`. Use `unknown` and narrow when a type is truly unknown.
+- Imports: use existing import aliases (`@excalidraw/common`, `@excalidraw/element`, etc.) rather than long relative paths.
+
+## Discouraged
+
+- New top-level dependencies. Use what is already declared in `package.json`.
+- Inline `style={{ ... }}` props when a CSS class would do.
+- `console.log` left in committed code.
+- Renaming public exports of `@excalidraw/excalidraw` — these are part of the published API.
+- Touching snapshot files unless the snapshot legitimately needs to change. Run `yarn test:update` to regenerate.
+
+## Tests
+
+If the change is non-trivial — more than copy or color edits — add or update a test next to the file (`<file>.test.tsx`) or in the existing `tests/` directory.

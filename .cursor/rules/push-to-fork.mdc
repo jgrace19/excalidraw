@@ -1,0 +1,65 @@
+---
+description: All branches and PRs in this repo go to the jgrace19/excalidraw fork. Never push directly to main/master on any remote. Always use a feature branch and open a PR.
+alwaysApply: true
+---
+
+# Push targets and PR safety
+
+This repository has `origin` configured as the fork `jgrace19/excalidraw`. Workshop work, kit changes, and any feature work must target this fork. Do not push to the upstream `excalidraw/excalidraw` repository, and do not push directly to a default branch on any remote.
+
+## Required
+
+- Push branches only to `origin` (the `jgrace19/excalidraw` fork). Verify with `git remote -v` before pushing if you are not sure.
+- Open all PRs against `jgrace19/excalidraw`'s default branch — not against upstream `excalidraw/excalidraw`.
+- Never push directly to `main`, `master`, or any default branch on any remote. Always use a feature branch.
+
+## Verifying before pushing
+
+Run the following before any push:
+
+```
+git remote -v
+git branch --show-current
+```
+
+- The remote URL should be `https://github.com/jgrace19/excalidraw.git` (or the SSH equivalent).
+- The current branch should not be `main` or `master`.
+
+If a second remote (e.g. an `upstream` pointing at `excalidraw/excalidraw`) is ever added, push explicitly with the remote name to avoid ambiguity:
+
+```
+git push origin <branch-name>
+```
+
+## Opening a PR
+
+Use the GitHub UI or `gh pr create` with an explicit `--repo` flag:
+
+```
+gh pr create --repo jgrace19/excalidraw
+```
+
+Without `--repo`, `gh` may infer the wrong target — particularly if an upstream remote is configured.
+
+## If you have committed directly on a default branch
+
+Do not push. Move the commit to a feature branch first:
+
+```
+git switch -c <feature-branch>
+git switch main
+git reset --hard origin/main
+git switch <feature-branch>
+git push -u origin <feature-branch>
+```
+
+Then open a PR.
+
+## If you have already pushed somewhere wrong
+
+- Pushed to upstream `excalidraw/excalidraw`: stop and tell the user. Do not force-push or delete the remote branch without explicit confirmation.
+- Pushed to a default branch on the fork: stop and tell the user. Offer to revert via a follow-up PR.
+
+## Exception
+
+Only push directly to a default branch, or to upstream, when the user explicitly authorizes that specific operation. A generic "commit and push" never grants this permission — interpret it as "commit on a feature branch and open a PR against the fork."
