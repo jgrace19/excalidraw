@@ -47,6 +47,7 @@ export const commonProps = {
   roughness: 1,
   strokeColor: COLOR_PALETTE.black,
   roundness: null,
+  shadow: "none",
   strokeStyle: "solid",
   strokeWidth: 1,
   verticalAlign: VERTICAL_ALIGN.MIDDLE,
