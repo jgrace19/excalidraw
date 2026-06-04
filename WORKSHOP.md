@@ -1,7 +1,6 @@
 # Workshop setup
 
-Get a working copy of this repo as fast as possible. The full upstream Excalidraw history is large (~88 MB of pack data) and a vanilla `git clone` pulls all of it. The two steps below keep things fast.
-
+Welcome to the Cursor Workshop! Our goal is to get you hands-on with Cursor as fast as possible. Follow the steps below to fork and clone the Excalidraw repo.
 ## 1. Fork this repo
 
 Open [github.com/jgrace19/excalidraw](https://github.com/jgrace19/excalidraw) and click **Fork** (top right). Fork into your own GitHub account — your workshop changes will live on a branch in your fork, and you'll open a pull request back to `jgrace19/excalidraw` at the end.
