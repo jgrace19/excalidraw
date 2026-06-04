@@ -1,0 +1,16 @@
+{
+  "name": "pr-to-prd",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Generates a PRD in Notion from a pull request diff using the Cursor SDK (cloud runtime).",
+  "scripts": {
+    "start": "node generate-prd.mjs"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.17"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
