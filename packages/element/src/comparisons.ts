@@ -38,6 +38,20 @@ export const hasStrokeStyle = (type: ElementOrToolType) =>
   type === "arrow" ||
   type === "line";
 
+export const hasShadow = (type: ElementOrToolType) =>
+  type === "rectangle" ||
+  type === "iframe" ||
+  type === "embeddable" ||
+  type === "ellipse" ||
+  type === "diamond" ||
+  type === "freedraw" ||
+  type === "arrow" ||
+  type === "line" ||
+  type === "text" ||
+  type === "image" ||
+  type === "frame" ||
+  type === "magicframe";
+
 export const canChangeRoundness = (type: ElementOrToolType) =>
   type === "rectangle" ||
   type === "iframe" ||

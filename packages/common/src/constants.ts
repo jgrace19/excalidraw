@@ -193,6 +193,12 @@ export const THEME = {
 
 export const DARK_THEME_FILTER = "invert(93%) hue-rotate(180deg)";
 
+export const SHADOW = {
+  none: "none",
+  soft: "soft",
+  strong: "strong",
+} as const;
+
 export const FRAME_STYLE = {
   strokeColor: "#bbb" as ExcalidrawElement["strokeColor"],
   strokeWidth: 2 as ExcalidrawElement["strokeWidth"],
@@ -200,6 +206,7 @@ export const FRAME_STYLE = {
   fillStyle: "solid" as ExcalidrawElement["fillStyle"],
   roughness: 0 as ExcalidrawElement["roughness"],
   roundness: null as ExcalidrawElement["roundness"],
+  shadow: SHADOW.none as ExcalidrawElement["shadow"],
   backgroundColor: "transparent" as ExcalidrawElement["backgroundColor"],
   radius: 8,
   nameOffsetY: 3,
@@ -418,6 +425,7 @@ export const DEFAULT_ELEMENT_PROPS: {
   strokeStyle: ExcalidrawElement["strokeStyle"];
   roughness: ExcalidrawElement["roughness"];
   opacity: ExcalidrawElement["opacity"];
+  shadow: ExcalidrawElement["shadow"];
   locked: ExcalidrawElement["locked"];
 } = {
   strokeColor: COLOR_PALETTE.black,
@@ -427,6 +435,7 @@ export const DEFAULT_ELEMENT_PROPS: {
   strokeStyle: "solid",
   roughness: ROUGHNESS.artist,
   opacity: 100,
+  shadow: SHADOW.none,
   locked: false,
 };
 

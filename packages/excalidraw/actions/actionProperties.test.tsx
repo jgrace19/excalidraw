@@ -4,6 +4,7 @@ import {
   COLOR_PALETTE,
   DEFAULT_ELEMENT_BACKGROUND_PICKS,
   FONT_FAMILY,
+  SHADOW,
   STROKE_WIDTH,
 } from "@excalidraw/common";
 
@@ -150,6 +151,39 @@ describe("element locking", () => {
       expect(
         queryByTestId(document.body, `strokeWidth-extraBold`),
       ).not.toBeChecked();
+    });
+
+    it("should highlight common shadow of selected elements", () => {
+      const rect1 = API.createElement({
+        type: "rectangle",
+        shadow: SHADOW.soft,
+      });
+      const rect2 = API.createElement({
+        type: "rectangle",
+        shadow: SHADOW.soft,
+      });
+      API.setElements([rect1, rect2]);
+      API.setSelectedElements([rect1, rect2]);
+
+      expect(queryByTestId(document.body, `shadow-soft`)).toBeChecked();
+    });
+
+    it("should not highlight any shadow button if no common style", () => {
+      const rect1 = API.createElement({
+        type: "rectangle",
+        shadow: SHADOW.soft,
+      });
+      const rect2 = API.createElement({
+        type: "rectangle",
+        shadow: SHADOW.strong,
+      });
+      API.setElements([rect1, rect2]);
+      API.setSelectedElements([rect1, rect2]);
+
+      expect(queryByTestId(document.body, `shadow-none`)).not.toBe(null);
+      expect(queryByTestId(document.body, `shadow-none`)).not.toBeChecked();
+      expect(queryByTestId(document.body, `shadow-soft`)).not.toBeChecked();
+      expect(queryByTestId(document.body, `shadow-strong`)).not.toBeChecked();
     });
 
     it("should show properties of different element types when selected", () => {

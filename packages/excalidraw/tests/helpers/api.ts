@@ -188,6 +188,7 @@ export class API {
     roundness?: ExcalidrawGenericElement["roundness"];
     roughness?: ExcalidrawGenericElement["roughness"];
     opacity?: ExcalidrawGenericElement["opacity"];
+    shadow?: ExcalidrawGenericElement["shadow"];
     // text props
     text?: T extends "text" ? ExcalidrawTextElement["text"] : never;
     fontSize?: T extends "text" ? ExcalidrawTextElement["fontSize"] : never;
@@ -274,6 +275,7 @@ export class API {
         : null,
       roughness: rest.roughness ?? appState.currentItemRoughness,
       opacity: rest.opacity ?? appState.currentItemOpacity,
+      shadow: rest.shadow ?? appState.currentItemShadow,
       boundElements: rest.boundElements ?? null,
       locked: rest.locked ?? false,
     };

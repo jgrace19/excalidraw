@@ -84,6 +84,93 @@ const maybeWrapNodesInFrameClipPath = (
   return null;
 };
 
+const getSvgShadowStyle = (shadow: ExcalidrawElement["shadow"]) => {
+  switch (shadow) {
+    case "soft":
+      return {
+        id: "excalidraw-shadow-soft",
+        dx: 2,
+        dy: 4,
+        stdDeviation: 4,
+        floodOpacity: 0.22,
+      };
+    case "strong":
+      return {
+        id: "excalidraw-shadow-strong",
+        dx: 4,
+        dy: 8,
+        stdDeviation: 8,
+        floodOpacity: 0.32,
+      };
+    case "none":
+      return null;
+  }
+};
+
+const ensureSvgShadowFilter = (
+  svgRoot: SVGElement,
+  shadow: ExcalidrawElement["shadow"],
+) => {
+  const shadowStyle = getSvgShadowStyle(shadow);
+  if (!shadowStyle) {
+    return null;
+  }
+
+  if (svgRoot.querySelector(`#${shadowStyle.id}`)) {
+    return shadowStyle.id;
+  }
+
+  const doc = svgRoot.ownerDocument;
+  let defs = svgRoot.querySelector("defs");
+  if (!defs) {
+    defs = doc.createElementNS(SVG_NS, "defs");
+    svgRoot.prepend(defs);
+  }
+
+  const filter = doc.createElementNS(SVG_NS, "filter");
+  filter.id = shadowStyle.id;
+  filter.setAttribute("x", "-50%");
+  filter.setAttribute("y", "-50%");
+  filter.setAttribute("width", "200%");
+  filter.setAttribute("height", "200%");
+
+  const dropShadow = doc.createElementNS(SVG_NS, "feDropShadow");
+  dropShadow.setAttribute("dx", `${shadowStyle.dx}`);
+  dropShadow.setAttribute("dy", `${shadowStyle.dy}`);
+  dropShadow.setAttribute("stdDeviation", `${shadowStyle.stdDeviation}`);
+  dropShadow.setAttribute("flood-color", "#000");
+  dropShadow.setAttribute("flood-opacity", `${shadowStyle.floodOpacity}`);
+  filter.appendChild(dropShadow);
+  defs.appendChild(filter);
+
+  return shadowStyle.id;
+};
+
+const maybeWrapNodeInShadow = (
+  node: SVGElement,
+  element: ExcalidrawElement,
+  svgRoot: SVGElement,
+) => {
+  const localName = node.localName.toLowerCase();
+  if (
+    localName === "clippath" ||
+    localName === "mask" ||
+    localName === "defs"
+  ) {
+    return node;
+  }
+
+  const filterId = ensureSvgShadowFilter(svgRoot, element.shadow);
+  if (!filterId) {
+    return node;
+  }
+
+  const wrapper = svgRoot.ownerDocument.createElementNS(SVG_NS, "g");
+  wrapper.setAttribute("filter", `url(#${filterId})`);
+  wrapper.appendChild(node);
+  return wrapper;
+};
+
 const renderElementToSvg = (
   element: NonDeletedExcalidrawElement,
   elementsMap: RenderableElementsMap,
@@ -128,10 +215,11 @@ const renderElementToSvg = (
   }
 
   const addToRoot = (node: SVGElement, element: ExcalidrawElement) => {
+    const nodeToAdd = maybeWrapNodeInShadow(node, element, svgRoot);
     if (isTestEnv()) {
-      node.setAttribute("data-id", element.id);
+      nodeToAdd.setAttribute("data-id", element.id);
     }
-    root.appendChild(node);
+    root.appendChild(nodeToAdd);
   };
 
   const opacity =
@@ -367,7 +455,6 @@ const renderElementToSvg = (
       );
       if (g) {
         addToRoot(g, element);
-        root.appendChild(g);
       } else {
         addToRoot(group, element);
         root.append(maskPath);

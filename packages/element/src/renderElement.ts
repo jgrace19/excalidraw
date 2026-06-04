@@ -89,19 +89,44 @@ const isPendingImageElement = (
   isInitializedImageElement(element) &&
   !renderConfig.imageCache.has(element.fileId);
 
+const getShadowStyle = (shadow: ExcalidrawElement["shadow"]) => {
+  switch (shadow) {
+    case "soft":
+      return {
+        color: "rgba(0, 0, 0, 0.22)",
+        blur: 8,
+        offsetX: 2,
+        offsetY: 4,
+        padding: 16,
+      };
+    case "strong":
+      return {
+        color: "rgba(0, 0, 0, 0.32)",
+        blur: 16,
+        offsetX: 4,
+        offsetY: 8,
+        padding: 32,
+      };
+    case "none":
+      return null;
+  }
+};
+
 const getCanvasPadding = (element: ExcalidrawElement) => {
+  const shadowPadding = getShadowStyle(element.shadow)?.padding ?? 0;
+
   switch (element.type) {
     case "freedraw":
-      return element.strokeWidth * 12;
+      return element.strokeWidth * 12 + shadowPadding;
     case "text":
-      return element.fontSize / 2;
+      return element.fontSize / 2 + shadowPadding;
     case "arrow":
       if (element.endArrowhead || element.endArrowhead) {
-        return 40;
+        return 40 + shadowPadding;
       }
-      return 20;
+      return 20 + shadowPadding;
     default:
-      return 20;
+      return 20 + shadowPadding;
   }
 };
 
@@ -143,6 +168,7 @@ export interface ExcalidrawElementWithCanvas {
   boundTextElementVersion: number | null;
   imageCrop: ExcalidrawImageElement["crop"] | null;
   containingFrameOpacity: number;
+  shadow: ExcalidrawElement["shadow"];
   boundTextCanvas: HTMLCanvasElement;
 }
 
@@ -332,6 +358,7 @@ const generateElementCanvas = (
       getBoundTextElement(element, elementsMap)?.version || null,
     containingFrameOpacity:
       getContainingFrame(element, elementsMap)?.opacity || 100,
+    shadow: element.shadow,
     boundTextCanvas,
     angle: element.angle,
     imageCrop: isImageElement(element) ? element.crop : null,
@@ -390,213 +417,227 @@ const drawElementOnCanvas = (
   context: CanvasRenderingContext2D,
   renderConfig: StaticCanvasRenderConfig,
 ) => {
-  switch (element.type) {
-    case "rectangle":
-    case "iframe":
-    case "embeddable":
-    case "diamond":
-    case "ellipse": {
-      context.lineJoin = "round";
-      context.lineCap = "round";
+  const shadow = getShadowStyle(element.shadow);
 
-      rc.draw(ShapeCache.generateElementShape(element, renderConfig));
-      break;
-    }
-    case "arrow":
-    case "line": {
-      context.lineJoin = "round";
-      context.lineCap = "round";
+  context.save();
+  if (shadow) {
+    context.shadowColor = shadow.color;
+    context.shadowBlur = shadow.blur;
+    context.shadowOffsetX = shadow.offsetX;
+    context.shadowOffsetY = shadow.offsetY;
+  }
 
-      ShapeCache.generateElementShape(element, renderConfig).forEach(
-        (shape) => {
-          rc.draw(shape);
-        },
-      );
-      break;
-    }
-    case "freedraw": {
-      // Draw directly to canvas
-      context.save();
+  try {
+    switch (element.type) {
+      case "rectangle":
+      case "iframe":
+      case "embeddable":
+      case "diamond":
+      case "ellipse": {
+        context.lineJoin = "round";
+        context.lineCap = "round";
 
-      const shapes = ShapeCache.generateElementShape(element, renderConfig);
-
-      for (const shape of shapes) {
-        if (typeof shape === "string") {
-          context.fillStyle =
-            renderConfig.theme === THEME.DARK
-              ? applyDarkModeFilter(element.strokeColor)
-              : element.strokeColor;
-          context.fill(new Path2D(shape));
-        } else {
-          rc.draw(shape);
-        }
+        rc.draw(ShapeCache.generateElementShape(element, renderConfig));
+        break;
       }
+      case "arrow":
+      case "line": {
+        context.lineJoin = "round";
+        context.lineCap = "round";
 
-      context.restore();
-      break;
-    }
-    case "image": {
-      context.save();
-      const cacheEntry =
-        element.fileId !== null
-          ? renderConfig.imageCache.get(element.fileId)
-          : null;
-      const img = isInitializedImageElement(element)
-        ? cacheEntry?.image
-        : undefined;
+        ShapeCache.generateElementShape(element, renderConfig).forEach(
+          (shape) => {
+            rc.draw(shape);
+          },
+        );
+        break;
+      }
+      case "freedraw": {
+        // Draw directly to canvas
+        context.save();
 
-      if (img != null && !(img instanceof Promise)) {
-        if (element.roundness && context.roundRect) {
-          context.beginPath();
-          context.roundRect(
-            0,
-            0,
-            element.width,
-            element.height,
-            getCornerRadius(Math.min(element.width, element.height), element),
-          );
-          context.clip();
+        const shapes = ShapeCache.generateElementShape(element, renderConfig);
+
+        for (const shape of shapes) {
+          if (typeof shape === "string") {
+            context.fillStyle =
+              renderConfig.theme === THEME.DARK
+                ? applyDarkModeFilter(element.strokeColor)
+                : element.strokeColor;
+            context.fill(new Path2D(shape));
+          } else {
+            rc.draw(shape);
+          }
         }
 
-        const { x, y, width, height } = element.crop
-          ? element.crop
-          : {
-              x: 0,
-              y: 0,
-              width: img.naturalWidth,
-              height: img.naturalHeight,
-            };
+        context.restore();
+        break;
+      }
+      case "image": {
+        context.save();
+        const cacheEntry =
+          element.fileId !== null
+            ? renderConfig.imageCache.get(element.fileId)
+            : null;
+        const img = isInitializedImageElement(element)
+          ? cacheEntry?.image
+          : undefined;
 
-        const shouldInvertImage =
-          renderConfig.theme === THEME.DARK &&
-          cacheEntry?.mimeType === MIME_TYPES.svg;
+        if (img != null && !(img instanceof Promise)) {
+          if (element.roundness && context.roundRect) {
+            context.beginPath();
+            context.roundRect(
+              0,
+              0,
+              element.width,
+              element.height,
+              getCornerRadius(Math.min(element.width, element.height), element),
+            );
+            context.clip();
+          }
 
-        if (shouldInvertImage && isSafari) {
-          const devicePixelRatio = window.devicePixelRatio || 1;
-          const tempCanvas = document.createElement("canvas");
-          tempCanvas.width = element.width * devicePixelRatio;
-          tempCanvas.height = element.height * devicePixelRatio;
-          const tempContext = tempCanvas.getContext("2d");
+          const { x, y, width, height } = element.crop
+            ? element.crop
+            : {
+                x: 0,
+                y: 0,
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+              };
 
-          if (tempContext) {
-            tempContext.scale(devicePixelRatio, devicePixelRatio);
-            tempContext.drawImage(
+          const shouldInvertImage =
+            renderConfig.theme === THEME.DARK &&
+            cacheEntry?.mimeType === MIME_TYPES.svg;
+
+          if (shouldInvertImage && isSafari) {
+            const devicePixelRatio = window.devicePixelRatio || 1;
+            const tempCanvas = document.createElement("canvas");
+            tempCanvas.width = element.width * devicePixelRatio;
+            tempCanvas.height = element.height * devicePixelRatio;
+            const tempContext = tempCanvas.getContext("2d");
+
+            if (tempContext) {
+              tempContext.scale(devicePixelRatio, devicePixelRatio);
+              tempContext.drawImage(
+                img,
+                x,
+                y,
+                width,
+                height,
+                0,
+                0,
+                element.width,
+                element.height,
+              );
+
+              const imageData = tempContext.getImageData(
+                0,
+                0,
+                tempCanvas.width,
+                tempCanvas.height,
+              );
+
+              const data = imageData.data;
+
+              for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];
+                data[i + 1] = 255 - data[i + 1];
+                data[i + 2] = 255 - data[i + 2];
+              }
+
+              tempContext.putImageData(imageData, 0, 0);
+              context.drawImage(
+                tempCanvas,
+                0,
+                0,
+                tempCanvas.width,
+                tempCanvas.height,
+                0,
+                0,
+                element.width,
+                element.height,
+              );
+            }
+          } else {
+            if (shouldInvertImage) {
+              context.filter = DARK_THEME_FILTER;
+            }
+
+            context.drawImage(
               img,
               x,
               y,
               width,
               height,
-              0,
-              0,
-              element.width,
-              element.height,
-            );
-
-            const imageData = tempContext.getImageData(
-              0,
-              0,
-              tempCanvas.width,
-              tempCanvas.height,
-            );
-
-            const data = imageData.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-              data[i] = 255 - data[i];
-              data[i + 1] = 255 - data[i + 1];
-              data[i + 2] = 255 - data[i + 2];
-            }
-
-            tempContext.putImageData(imageData, 0, 0);
-            context.drawImage(
-              tempCanvas,
-              0,
-              0,
-              tempCanvas.width,
-              tempCanvas.height,
-              0,
+              0 /* hardcoded for the selection box*/,
               0,
               element.width,
               element.height,
             );
           }
         } else {
-          if (shouldInvertImage) {
-            context.filter = DARK_THEME_FILTER;
-          }
-
-          context.drawImage(
-            img,
-            x,
-            y,
-            width,
-            height,
-            0 /* hardcoded for the selection box*/,
-            0,
-            element.width,
-            element.height,
-          );
-        }
-      } else {
-        drawImagePlaceholder(element, context, renderConfig.theme);
-      }
-      context.restore();
-      break;
-    }
-    default: {
-      if (isTextElement(element)) {
-        const rtl = isRTL(element.text);
-        const shouldTemporarilyAttach = rtl && !context.canvas.isConnected;
-        if (shouldTemporarilyAttach) {
-          // to correctly render RTL text mixed with LTR, we have to append it
-          // to the DOM
-          document.body.appendChild(context.canvas);
-        }
-        context.canvas.setAttribute("dir", rtl ? "rtl" : "ltr");
-        context.save();
-        context.font = getFontString(element);
-        context.fillStyle =
-          renderConfig.theme === THEME.DARK
-            ? applyDarkModeFilter(element.strokeColor)
-            : element.strokeColor;
-        context.textAlign = element.textAlign as CanvasTextAlign;
-
-        // Canvas does not support multiline text by default
-        const lines = element.text.replace(/\r\n?/g, "\n").split("\n");
-
-        const horizontalOffset =
-          element.textAlign === "center"
-            ? element.width / 2
-            : element.textAlign === "right"
-            ? element.width
-            : 0;
-
-        const lineHeightPx = getLineHeightInPx(
-          element.fontSize,
-          element.lineHeight,
-        );
-
-        const verticalOffset = getVerticalOffset(
-          element.fontFamily,
-          element.fontSize,
-          lineHeightPx,
-        );
-
-        for (let index = 0; index < lines.length; index++) {
-          context.fillText(
-            lines[index],
-            horizontalOffset,
-            index * lineHeightPx + verticalOffset,
-          );
+          drawImagePlaceholder(element, context, renderConfig.theme);
         }
         context.restore();
-        if (shouldTemporarilyAttach) {
-          context.canvas.remove();
+        break;
+      }
+      default: {
+        if (isTextElement(element)) {
+          const rtl = isRTL(element.text);
+          const shouldTemporarilyAttach = rtl && !context.canvas.isConnected;
+          if (shouldTemporarilyAttach) {
+            // to correctly render RTL text mixed with LTR, we have to append it
+            // to the DOM
+            document.body.appendChild(context.canvas);
+          }
+          context.canvas.setAttribute("dir", rtl ? "rtl" : "ltr");
+          context.save();
+          context.font = getFontString(element);
+          context.fillStyle =
+            renderConfig.theme === THEME.DARK
+              ? applyDarkModeFilter(element.strokeColor)
+              : element.strokeColor;
+          context.textAlign = element.textAlign as CanvasTextAlign;
+
+          // Canvas does not support multiline text by default
+          const lines = element.text.replace(/\r\n?/g, "\n").split("\n");
+
+          const horizontalOffset =
+            element.textAlign === "center"
+              ? element.width / 2
+              : element.textAlign === "right"
+              ? element.width
+              : 0;
+
+          const lineHeightPx = getLineHeightInPx(
+            element.fontSize,
+            element.lineHeight,
+          );
+
+          const verticalOffset = getVerticalOffset(
+            element.fontFamily,
+            element.fontSize,
+            lineHeightPx,
+          );
+
+          for (let index = 0; index < lines.length; index++) {
+            context.fillText(
+              lines[index],
+              horizontalOffset,
+              index * lineHeightPx + verticalOffset,
+            );
+          }
+          context.restore();
+          if (shouldTemporarilyAttach) {
+            context.canvas.remove();
+          }
+        } else {
+          throw new Error(`Unimplemented type ${element.type}`);
         }
-      } else {
-        throw new Error(`Unimplemented type ${element.type}`);
       }
     }
+  } finally {
+    context.restore();
   }
 };
 
@@ -635,6 +676,7 @@ const generateElementWithCanvas = (
     prevElementWithCanvas.boundTextElementVersion !== boundTextElementVersion ||
     prevElementWithCanvas.imageCrop !== imageCrop ||
     prevElementWithCanvas.containingFrameOpacity !== containingFrameOpacity ||
+    prevElementWithCanvas.shadow !== element.shadow ||
     // since we rotate the canvas when copying from cached canvas, we don't
     // regenerate the cached canvas. But we need to in case of labels which are
     // cached alongside the arrow, and we want the labels to remain unrotated

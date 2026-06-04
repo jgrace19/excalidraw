@@ -26,6 +26,7 @@ export type PointerType = "mouse" | "pen" | "touch";
 export type StrokeRoundness = "round" | "sharp";
 export type RoundnessType = ValueOf<typeof ROUNDNESS>;
 export type StrokeStyle = "solid" | "dashed" | "dotted";
+export type Shadow = "none" | "soft" | "strong";
 export type TextAlign = typeof TEXT_ALIGN[keyof typeof TEXT_ALIGN];
 
 type VerticalAlignKeys = keyof typeof VERTICAL_ALIGN;
@@ -49,6 +50,7 @@ type _ExcalidrawElementBase = Readonly<{
   roundness: null | { type: RoundnessType; value?: number };
   roughness: number;
   opacity: number;
+  shadow: Shadow;
   width: number;
   height: number;
   angle: Radians;
