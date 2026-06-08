@@ -20,7 +20,7 @@ fast lookup for "where is X" and "how do I find it".
 | Editor state shape | `AppState` in `packages/excalidraw/types.ts` |
 | Colors / constants / keys | `packages/common/src/` |
 | Geometry math | `packages/math/src/` |
-| Persistence, collab, sharing | `excalidraw-app/` (often off-limits — see workshop-safe-paths) |
+| Persistence, collab, sharing | `excalidraw-app/` |
 
 ## Finding code efficiently
 
@@ -34,7 +34,5 @@ fast lookup for "where is X" and "how do I find it".
 
 ## Before editing
 
-- Check `.cursor/rules/workshop-safe-paths.mdc` — some areas (firebase, data, utils, CI)
-  are off-limits.
 - Respect the import, i18n, and testing rules in `.cursor/rules/`.
 - Verify with `yarn test:typecheck` and `yarn test:code` when done.
