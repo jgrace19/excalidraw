@@ -1,0 +1,57 @@
+name: Spec adherence
+
+# Verifies that a pull request's changes adhere to its product spec.
+#
+# The spec is discovered by matching the ticket name in the PR branch to a
+# Confluence page that contains the same ticket name. If no such page exists,
+# the check skips. A Cursor SDK agent then judges the diff against the spec.
+#
+# Required repository secrets:
+#   CURSOR_API_KEY        - Cursor user or service-account API key (cursor_...)
+#   CONFLUENCE_BASE_URL   - e.g. https://your-site.atlassian.net
+#   CONFLUENCE_EMAIL      - Atlassian account email for the API token
+#   CONFLUENCE_API_TOKEN  - Atlassian API token for that account
+#
+# When any secret is missing (e.g. on forks), the check skips instead of failing.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: spec-adherence-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  spec-adherence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install spec-check dependencies
+        working-directory: .github/spec-check
+        run: npm install --no-audit --no-fund
+
+      - name: Check PR against Confluence spec
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CONFLUENCE_BASE_URL: ${{ secrets.CONFLUENCE_BASE_URL }}
+          CONFLUENCE_EMAIL: ${{ secrets.CONFLUENCE_EMAIL }}
+          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node .github/spec-check/check-spec-adherence.mjs
