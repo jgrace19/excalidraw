@@ -20,9 +20,9 @@ const {
   CURSOR_API_KEY,
   GITHUB_SERVER_URL = "https://github.com",
   GITHUB_REPOSITORY = "",
-  GITHUB_HEAD_SHA = "",
   GITHUB_HEAD_REF = "",
   GITHUB_BASE_REF = "",
+  PR_URL = "",
   PR_TITLE = "",
   SPEC_TICKET = "",
   CURSOR_MODEL = "composer-2.5",
@@ -62,9 +62,8 @@ if (!GITHUB_REPOSITORY) {
   skip("GITHUB_REPOSITORY is not set (expected in GitHub Actions).");
 }
 
-const headRef = GITHUB_HEAD_SHA || GITHUB_HEAD_REF;
-if (!headRef) {
-  skip("Neither GITHUB_HEAD_SHA nor GITHUB_HEAD_REF is set.");
+if (!GITHUB_HEAD_REF && !PR_URL) {
+  skip("Neither GITHUB_HEAD_REF nor PR_URL is set.");
 }
 
 const repoUrl = `${GITHUB_SERVER_URL.replace(/\/+$/, "")}/${GITHUB_REPOSITORY}`;
@@ -99,7 +98,9 @@ if (!ticket) {
   skip(`No ticket name could be derived from branch "${PR_BRANCH}".`);
 }
 log(`ticket="${ticket}" (source: ${kind}) from branch "${PR_BRANCH}"`);
-log(`cloud repo=${repoUrl} ref=${headRef} base=${GITHUB_BASE_REF || "(unknown)"}`);
+log(
+  `cloud repo=${repoUrl} branch=${GITHUB_HEAD_REF || "(via prUrl)"} pr=${PR_URL || "(none)"} base=${GITHUB_BASE_REF || "(unknown)"}`,
+);
 
 // ---------- cloud agent: discover spec via Atlassian MCP + judge adherence ----------
 
@@ -157,7 +158,12 @@ try {
     apiKey: CURSOR_API_KEY,
     model: { id: CURSOR_MODEL },
     cloud: {
-      repos: [{ url: repoUrl, startingRef: headRef }],
+      repos: [
+        {
+          url: repoUrl,
+          ...(PR_URL ? { prUrl: PR_URL } : { startingRef: GITHUB_HEAD_REF }),
+        },
+      ],
       skipReviewerRequest: true,
     },
   });
