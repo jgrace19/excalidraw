@@ -2,17 +2,20 @@ name: Spec adherence
 
 # Verifies that a pull request's changes adhere to its product spec.
 #
-# The spec is discovered by matching the ticket name in the PR branch to a
-# Confluence page that contains the same ticket name. If no such page exists,
-# the check skips. A Cursor SDK agent then judges the diff against the spec.
+# A Cursor **cloud** agent clones the PR head, uses the **Atlassian MCP**
+# (OAuth via cursor.com/agents / team plugins — no Confluence API tokens here)
+# to find a Confluence page matching the ticket name in the branch, then judges
+# adherence. If no matching spec exists, the check skips.
 #
-# Required repository secrets:
-#   CURSOR_API_KEY        - Cursor user or service-account API key (cursor_...)
-#   CONFLUENCE_BASE_URL   - e.g. https://your-site.atlassian.net
-#   CONFLUENCE_EMAIL      - Atlassian account email for the API token
-#   CONFLUENCE_API_TOKEN  - Atlassian API token for that account
+# Required repository secret:
+#   CURSOR_API_KEY — Cursor **personal** user API key (cursor_...) recommended.
+#     Service-account keys cannot reuse per-user OAuth for Atlassian MCP.
 #
-# When any secret is missing (e.g. on forks), the check skips instead of failing.
+# Prerequisite (outside this repo):
+#   Atlassian MCP authorized for the API key's user/team at cursor.com/agents
+#   or via Cursor marketplace team plugins.
+#
+# When CURSOR_API_KEY is missing (e.g. on forks), the check skips.
 
 on:
   pull_request:
@@ -30,12 +33,6 @@ jobs:
   spec-adherence:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out PR
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -45,12 +42,12 @@ jobs:
         working-directory: .github/spec-check
         run: npm install --no-audit --no-fund
 
-      - name: Check PR against Confluence spec
+      - name: Check PR against Confluence spec (cloud agent + Atlassian MCP)
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
-          CONFLUENCE_BASE_URL: ${{ secrets.CONFLUENCE_BASE_URL }}
-          CONFLUENCE_EMAIL: ${{ secrets.CONFLUENCE_EMAIL }}
-          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
           GITHUB_BASE_REF: ${{ github.base_ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
