@@ -1,0 +1,27 @@
+---
+description: Project-specific import restrictions for TS/TSX. These are enforced by ESLint at error level, and `yarn test:code` runs with --max-warnings=0, so violations fail CI.
+globs: ["packages/**/*.{ts,tsx}", "excalidraw-app/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+
+# Imports
+
+- Import cross-package code via aliases, not long relative paths:
+  `@excalidraw/common`, `@excalidraw/element`, `@excalidraw/math`, `@excalidraw/utils`, `@excalidraw/excalidraw`.
+- Inside `packages/excalidraw/`, never import from a barrel / `index` file (`.`, `..`, `@excalidraw/excalidraw`).
+  Import the specific module directly instead.
+- Never import `jotai` directly. Use `editor-jotai` (library code) or `app-jotai` (app code).
+- Use separate type imports: `import type { Foo } from "..."` rather than mixing types into a value import.
+
+```ts
+// BAD
+import { someUtil } from "../../../common/src/utils";
+import { atom } from "jotai";
+import { AppState, getDefaultAppState } from "@excalidraw/excalidraw";
+
+// GOOD
+import { someUtil } from "@excalidraw/common";
+import { atom } from "../editor-jotai";
+import { getDefaultAppState } from "../appState";
+import type { AppState } from "../types";
+```
