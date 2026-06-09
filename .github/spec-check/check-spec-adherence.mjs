@@ -21,6 +21,10 @@
 
 import { Agent, CursorAgentError } from "@cursor/sdk";
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const COMMENT_MARKER = "<!-- spec-adherence-check -->";
 
@@ -68,6 +72,14 @@ function githubApi(path, { method = "GET", body } = {}) {
   });
 }
 
+async function apiErrorBody(res) {
+  try {
+    return (await res.text()).slice(0, 300);
+  } catch {
+    return "";
+  }
+}
+
 async function postPrComment(markdown) {
   if (!GITHUB_TOKEN || !PR_NUMBER || !GITHUB_REPOSITORY) {
     log("PR comment skipped (GITHUB_TOKEN, PR_NUMBER, or GITHUB_REPOSITORY missing).");
@@ -79,13 +91,17 @@ async function postPrComment(markdown) {
 
   try {
     let existing;
+
     for (let page = 1; !existing; page += 1) {
       const listRes = await githubApi(
         `${issuePath}?per_page=100&sort=created&direction=desc&page=${page}`,
       );
       if (!listRes.ok) {
-        log(`PR comment list failed: HTTP ${listRes.status}`);
-        return;
+        const detail = await apiErrorBody(listRes);
+        log(
+          `PR comment list failed: HTTP ${listRes.status}${detail ? ` — ${detail}` : ""}`,
+        );
+        break;
       }
 
       const comments = await listRes.json();
@@ -102,10 +118,12 @@ async function postPrComment(markdown) {
       );
       if (patchRes.ok) {
         log(`updated PR comment #${existing.id}`);
-      } else {
-        log(`PR comment update failed: HTTP ${patchRes.status}`);
+        return;
       }
-      return;
+      const detail = await apiErrorBody(patchRes);
+      log(
+        `PR comment update failed: HTTP ${patchRes.status}${detail ? ` — ${detail}` : ""}`,
+      );
     }
 
     const createRes = await githubApi(issuePath, {
@@ -116,7 +134,10 @@ async function postPrComment(markdown) {
       const created = await createRes.json();
       log(`posted PR comment #${created.id}`);
     } else {
-      log(`PR comment create failed: HTTP ${createRes.status}`);
+      const detail = await apiErrorBody(createRes);
+      log(
+        `PR comment create failed: HTTP ${createRes.status}${detail ? ` — ${detail}` : ""}`,
+      );
     }
   } catch (err) {
     log(`PR comment error: ${err instanceof Error ? err.message : String(err)}`);
@@ -164,6 +185,20 @@ if (!GITHUB_HEAD_REF && !PR_URL) {
 
 const repoUrl = `${GITHUB_SERVER_URL.replace(/\/+$/, "")}/${GITHUB_REPOSITORY}`;
 
+function loadTicketSpecMap() {
+  try {
+    return JSON.parse(
+      fs.readFileSync(path.join(__dirname, "ticket-spec-pages.json"), "utf8"),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function uniqueStrings(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
 // ---------- ticket extraction (deterministic, done before the agent) ----------
 
 function extractTicket(branch, title) {
@@ -194,16 +229,28 @@ if (!ticket) {
   await skip(`No ticket name could be derived from branch "${PR_BRANCH}".`);
 }
 
-const spaceIds = CONFLUENCE_SPEC_SPACE_IDS.split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+const ticketSpecMap = loadTicketSpecMap();
+const ticketSpec = ticketSpecMap[ticket] ?? null;
+
+const resolvedPageId = SPEC_PAGE_ID.trim() || ticketSpec?.pageId || "";
+const resolvedCloudId = CONFLUENCE_CLOUD_ID.trim() || ticketSpec?.cloudId || "";
+const spaceIds = uniqueStrings([
+  ...CONFLUENCE_SPEC_SPACE_IDS.split(",").map((s) => s.trim()),
+  ...(ticketSpec?.spaceIds ?? []),
+]);
 
 log(`ticket="${ticket}" (source: ${kind}) from branch "${PR_BRANCH}"`);
-if (SPEC_PAGE_ID) {
-  log(`spec page override: ${SPEC_PAGE_ID}`);
+if (resolvedPageId) {
+  log(
+    `spec page id: ${resolvedPageId}` +
+      (ticketSpec?.pageId && !SPEC_PAGE_ID.trim() ? " (from ticket-spec-pages.json)" : ""),
+  );
 }
 if (spaceIds.length) {
   log(`confluence space scan priority: ${spaceIds.join(", ")}`);
+}
+if (resolvedCloudId) {
+  log(`confluence cloud id: ${resolvedCloudId}`);
 }
 log(
   `cloud repo=${repoUrl} branch=${GITHUB_HEAD_REF || "(via prUrl)"} pr=${PR_URL || "(none)"} base=${GITHUB_BASE_REF || "(unknown)"}`,
@@ -212,55 +259,67 @@ log(
 // ---------- cloud agent: discover spec via Atlassian MCP + judge adherence ----------
 
 function buildSpecDiscoverySection() {
+  const cloudHint = resolvedCloudId
+    ? `"${resolvedCloudId}"`
+    : "from getAccessibleAtlassianResources";
   const lines = [
-    "## Spec discovery (follow this order)",
+    "## Spec discovery (follow this order — do not skip steps)",
     "",
-    "Personal-space and some draft-origin pages are **not** returned by CQL/Rovo",
-    "search even after publish. You MUST run the fallbacks below before skipping.",
+    "Personal-space PRDs are often missing from CQL/Rovo search. Enumeration",
+    "via getPagesInConfluenceSpace is required when search returns nothing.",
     "",
   ];
 
-  if (SPEC_PAGE_ID) {
+  if (resolvedPageId) {
     lines.push(
-      `### 1. Direct page lookup (highest priority)`,
-      `Call getConfluencePage with pageId "${SPEC_PAGE_ID}".`,
-      `Use it as the spec if the title or body contains "${ticket}" (case-insensitive).`,
+      `### 1. Direct page lookup — REQUIRED FIRST`,
+      `Call getConfluencePage with:`,
+      `  cloudId: ${cloudHint}`,
+      `  pageId: "${resolvedPageId}"`,
+      ...(ticketSpec?.title
+        ? [`Expected title: "${ticketSpec.title}"`]
+        : []),
+      `This is the registered PRD for ticket ${ticket}. Use it as the spec unless`,
+      `the MCP returns an access error. Do not return "skip" without trying this.`,
       ``,
     );
   }
 
+  const searchStep = resolvedPageId ? "2" : "1";
+  const scanStep = resolvedPageId ? "3" : "2";
+
   lines.push(
-    `### ${SPEC_PAGE_ID ? "2" : "1"}. Search index`,
+    `### ${searchStep}. Search index`,
     `Try searchConfluenceUsingCql, e.g.:`,
     `  type = page AND (title ~ "${ticket}" OR text ~ "${ticket}") ORDER BY lastmodified DESC`,
     `Also try the Rovo search tool with query "${ticket}".`,
-    `Prefer product-requirements / PRD pages.`,
     ``,
-    `### ${SPEC_PAGE_ID ? "3" : "2"}. Space enumeration fallback (required if search is empty)`,
-    `When CQL/Rovo return no match, enumerate pages directly:`,
-    `1. Resolve cloudId via getAccessibleAtlassianResources` +
-      (CONFLUENCE_CLOUD_ID ? ` (or use "${CONFLUENCE_CLOUD_ID}" directly)` : "") +
-      `.`,
+    `### ${scanStep}. Space enumeration — REQUIRED if step 1 failed or was skipped`,
+    `1. cloudId = ${cloudHint}`,
   );
 
   if (spaceIds.length) {
     lines.push(
-      `2. Scan these space ids first: ${spaceIds.join(", ")}`,
-      `   (from CONFLUENCE_SPEC_SPACE_IDS), then any remaining accessible spaces.`,
+      `2. For each space id: ${spaceIds.join(", ")}, call`,
+      `   getPagesInConfluenceSpace(cloudId, spaceId, status: "current", limit: 250).`,
+      `   Select pages whose title contains "${ticket}" (case-insensitive).`,
+      `3. Then scan any remaining accessible spaces from getConfluenceSpaces.`,
     );
   } else {
-    lines.push(`2. Call getConfluenceSpaces and scan each accessible space.`);
+    lines.push(
+      `2. Call getConfluenceSpaces, then for each space call`,
+      `   getPagesInConfluenceSpace(cloudId, spaceId, status: "current", limit: 250).`,
+      `   Select pages whose title contains "${ticket}" (case-insensitive).`,
+    );
   }
 
   lines.push(
-    `3. For each space, call getPagesInConfluenceSpace(spaceId, status: "current", limit: 250).`,
-    `   Pick pages whose title contains "${ticket}" (case-insensitive).`,
-    `4. Also call getConfluencePageDescendants on each space homepage for nested pages`,
-    `   search may miss; match titles containing "${ticket}".`,
-    `5. Fetch the best match with getConfluencePage and confirm the body references the ticket`,
-    `   or is clearly the PRD for this feature.`,
+    `4. For each space, call getConfluencePageDescendants on the space homepage`,
+    `   to catch nested pages; match titles containing "${ticket}".`,
+    `5. Fetch the best match with getConfluencePage.`,
     ``,
-    `Only return verdict "skip" after all discovery steps above fail.`,
+    `Only return verdict "skip" after steps 1–5 all fail (including access errors).`,
+    `If step 1 succeeds, use that page and proceed to adherence review.`,
   );
 
   return lines.join("\n");

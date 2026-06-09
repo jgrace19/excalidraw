@@ -13,11 +13,12 @@ name: Spec adherence
 #   CURSOR_API_KEY — Cursor **personal** user API key (cursor_...) recommended.
 #     Service-account keys cannot reuse per-user OAuth for Atlassian MCP.
 #
-# Optional repository variables / secrets:
+# Optional repository variables (override .github/spec-check/ticket-spec-pages.json):
 #   SPEC_PAGE_ID              — Confluence page id for direct spec lookup
 #   CONFLUENCE_SPEC_SPACE_IDS — comma-separated space ids to scan first
-#                               (e.g. 120520747 for a personal space)
-#   CONFLUENCE_CLOUD_ID       — Atlassian cloud UUID (auto-resolved if unset)
+#   CONFLUENCE_CLOUD_ID       — Atlassian cloud UUID
+#
+# Ticket → page mappings can also live in ticket-spec-pages.json (no secrets).
 #
 # Prerequisite (outside this repo):
 #   Atlassian MCP authorized for the API key's user/team at cursor.com/agents
@@ -32,6 +33,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  issues: write
 
 concurrency:
   group: spec-adherence-${{ github.event.pull_request.number }}
