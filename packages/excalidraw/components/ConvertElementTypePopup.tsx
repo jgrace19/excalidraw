@@ -86,6 +86,7 @@ import {
   EllipseIcon,
   LineIcon,
   RectangleIcon,
+  StarIcon,
   roundArrowIcon,
   sharpArrowIcon,
 } from "./icons";
@@ -303,6 +304,7 @@ const Panel = ({
           ["rectangle", RectangleIcon],
           ["diamond", DiamondIcon],
           ["ellipse", EllipseIcon],
+          ["star", StarIcon],
         ]
       : [];
 

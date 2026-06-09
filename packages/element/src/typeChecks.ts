@@ -252,6 +252,7 @@ export const isExcalidrawElement = (
     case "text":
     case "diamond":
     case "rectangle":
+    case "star":
     case "iframe":
     case "embeddable":
     case "ellipse":
@@ -398,6 +399,7 @@ export const isEligibleFrameChildType = (type: ElementOrToolType) => {
     case "rectangle":
     case "diamond":
     case "ellipse":
+    case "star":
     case "arrow":
     case "line":
     case "freedraw":

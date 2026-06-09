@@ -15,6 +15,7 @@ import {
   pointDistance,
   type LocalPoint,
   pointRotateRads,
+  polygon,
 } from "@excalidraw/math";
 import {
   ROUGHNESS,
@@ -167,6 +168,29 @@ const getDashArrayDashed = (strokeWidth: number) => [8, 8 + strokeWidth];
 
 const getDashArrayDotted = (strokeWidth: number) => [1.5, 6 + strokeWidth];
 
+export const getStarPoints = (element: {
+  width: number;
+  height: number;
+}): LocalPoint[] => {
+  const centerX = element.width / 2;
+  const centerY = element.height / 2;
+  const outerRadiusX = element.width / 2;
+  const outerRadiusY = element.height / 2;
+  const innerRadiusX = outerRadiusX * 0.45;
+  const innerRadiusY = outerRadiusY * 0.45;
+
+  return Array.from({ length: 10 }, (_, index) => {
+    const angle = -Math.PI / 2 + (index * Math.PI) / 5;
+    const radiusX = index % 2 === 0 ? outerRadiusX : innerRadiusX;
+    const radiusY = index % 2 === 0 ? outerRadiusY : innerRadiusY;
+
+    return pointFrom<LocalPoint>(
+      centerX + Math.cos(angle) * radiusX,
+      centerY + Math.sin(angle) * radiusY,
+    );
+  });
+};
+
 function adjustRoughness(element: ExcalidrawElement): number {
   const roughness = element.roughness;
 
@@ -230,6 +254,7 @@ export const generateRoughOptions = (
     case "iframe":
     case "embeddable":
     case "diamond":
+    case "star":
     case "ellipse": {
       options.fillStyle = element.fillStyle;
       options.fill = isTransparent(element.backgroundColor)
@@ -865,6 +890,13 @@ const _generateElementShape = (
       }
       return shape;
     }
+    case "star": {
+      const shape: ElementShapes[typeof element.type] = generator.polygon(
+        getStarPoints(element) as RoughPoint[],
+        generateRoughOptions(element, false, isDarkMode),
+      );
+      return shape;
+    }
     case "ellipse": {
       const shape: ElementShapes[typeof element.type] = generator.ellipse(
         element.width / 2,
@@ -1088,6 +1120,24 @@ export const getElementShape = <Point extends GlobalPoint | LocalPoint>(
     case "text":
     case "selection":
       return getPolygonShape(element);
+    case "star": {
+      const center = pointFrom<Point>(
+        element.x + element.width / 2,
+        element.y + element.height / 2,
+      );
+      const points = getStarPoints(element).map(([x, y]) =>
+        pointRotateRads(
+          pointFrom<Point>(element.x + x, element.y + y),
+          center,
+          element.angle,
+        ),
+      );
+
+      return {
+        type: "polygon",
+        data: polygon(...points),
+      };
+    }
     case "arrow":
     case "line": {
       const roughShape = ShapeCache.generateElementShape(element, null)[0];
