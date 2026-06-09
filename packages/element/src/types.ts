@@ -97,6 +97,10 @@ export type ExcalidrawEllipseElement = _ExcalidrawElementBase & {
   type: "ellipse";
 };
 
+export type ExcalidrawStarElement = _ExcalidrawElementBase & {
+  type: "star";
+};
+
 export type ExcalidrawEmbeddableElement = _ExcalidrawElementBase &
   Readonly<{
     type: "embeddable";
@@ -181,7 +185,8 @@ export type ExcalidrawGenericElement =
   | ExcalidrawSelectionElement
   | ExcalidrawRectangleElement
   | ExcalidrawDiamondElement
-  | ExcalidrawEllipseElement;
+  | ExcalidrawEllipseElement
+  | ExcalidrawStarElement;
 
 export type ExcalidrawFlowchartNodeElement =
   | ExcalidrawRectangleElement
@@ -190,6 +195,7 @@ export type ExcalidrawFlowchartNodeElement =
 
 export type ExcalidrawRectanguloidElement =
   | ExcalidrawRectangleElement
+  | ExcalidrawStarElement
   | ExcalidrawImageElement
   | ExcalidrawTextElement
   | ExcalidrawFreeDrawElement
@@ -443,6 +449,10 @@ export type ExcalidrawLinearElementSubType =
   | "curvedArrow"
   | "elbowArrow";
 
-export type ConvertibleGenericTypes = "rectangle" | "diamond" | "ellipse";
+export type ConvertibleGenericTypes =
+  | "rectangle"
+  | "diamond"
+  | "ellipse"
+  | "star";
 export type ConvertibleLinearTypes = ExcalidrawLinearElementSubType;
 export type ConvertibleTypes = ConvertibleGenericTypes | ConvertibleLinearTypes;
