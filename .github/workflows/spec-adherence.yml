@@ -5,11 +5,19 @@ name: Spec adherence
 # A Cursor **cloud** agent clones the PR head, uses the **Atlassian MCP**
 # (OAuth via cursor.com/agents / team plugins — no Confluence API tokens here)
 # to find a Confluence page matching the ticket name in the branch, then judges
-# adherence. If no matching spec exists, the check skips.
+# adherence. Discovery order: optional SPEC_PAGE_ID direct lookup, then CQL/Rovo
+# search, then getPagesInConfluenceSpace + getConfluencePageDescendants fallback
+# (needed for personal-space PRDs that CQL does not index).
 #
 # Required repository secret:
 #   CURSOR_API_KEY — Cursor **personal** user API key (cursor_...) recommended.
 #     Service-account keys cannot reuse per-user OAuth for Atlassian MCP.
+#
+# Optional repository variables / secrets:
+#   SPEC_PAGE_ID              — Confluence page id for direct spec lookup
+#   CONFLUENCE_SPEC_SPACE_IDS — comma-separated space ids to scan first
+#                               (e.g. 120520747 for a personal space)
+#   CONFLUENCE_CLOUD_ID       — Atlassian cloud UUID (auto-resolved if unset)
 #
 # Prerequisite (outside this repo):
 #   Atlassian MCP authorized for the API key's user/team at cursor.com/agents
@@ -23,7 +31,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   group: spec-adherence-${{ github.event.pull_request.number }}
@@ -50,10 +58,15 @@ jobs:
       - name: Check PR against Confluence spec (cloud agent + Atlassian MCP)
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_HEAD_REF: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_BASE_REF: ${{ github.base_ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
+          SPEC_PAGE_ID: ${{ vars.SPEC_PAGE_ID }}
+          CONFLUENCE_SPEC_SPACE_IDS: ${{ vars.CONFLUENCE_SPEC_SPACE_IDS }}
+          CONFLUENCE_CLOUD_ID: ${{ vars.CONFLUENCE_CLOUD_ID }}
         run: node .github/spec-check/check-spec-adherence.mjs
