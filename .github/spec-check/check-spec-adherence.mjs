@@ -78,16 +78,22 @@ async function postPrComment(markdown) {
   const issuePath = `/repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments`;
 
   try {
-    const listRes = await githubApi(
-      `${issuePath}?per_page=100`,
-    );
-    if (!listRes.ok) {
-      log(`PR comment list failed: HTTP ${listRes.status}`);
-      return;
-    }
+    let existing;
+    for (let page = 1; !existing; page += 1) {
+      const listRes = await githubApi(
+        `${issuePath}?per_page=100&sort=created&direction=desc&page=${page}`,
+      );
+      if (!listRes.ok) {
+        log(`PR comment list failed: HTTP ${listRes.status}`);
+        return;
+      }
 
-    const comments = await listRes.json();
-    const existing = comments.find((c) => c.body?.includes(COMMENT_MARKER));
+      const comments = await listRes.json();
+      existing = comments.find((c) => c.body?.includes(COMMENT_MARKER));
+      if (existing || comments.length < 100) {
+        break;
+      }
+    }
 
     if (existing) {
       const patchRes = await githubApi(
@@ -166,9 +172,9 @@ function extractTicket(branch, title) {
   }
 
   const haystack = `${branch} ${title}`;
-  const jira = haystack.match(/[A-Z][A-Z0-9]+-\d+/);
+  const jira = haystack.match(/\b[A-Z][A-Z0-9]+-\d+\b/i);
   if (jira) {
-    return { ticket: jira[0], kind: "jira-key" };
+    return { ticket: jira[0].toUpperCase(), kind: "jira-key" };
   }
 
   const withoutPrefix = branch.replace(/^(workshop|feature|feat|fix|chore)\//i, "");
@@ -326,14 +332,20 @@ try {
 } catch (err) {
   if (err instanceof CursorAgentError) {
     log(`startup failed: ${err.message} (retryable=${err.isRetryable})`);
-    await skip(`Cursor cloud agent could not start: ${err.message}`);
+    await fail(
+      "Cursor cloud agent failed to start.",
+      `Cursor cloud agent could not start: ${err.message}`,
+    );
   }
   throw err;
 }
 
 if (result.status === "error") {
   log(`run failed: ${result.id ?? "unknown"}`);
-  await skip("Cursor cloud agent run errored before producing a verdict.");
+  await fail(
+    "Cursor cloud agent run failed.",
+    `Cursor cloud agent run ${result.id ?? "unknown"} errored before producing a verdict.`,
+  );
 }
 
 function parseVerdict(text) {
