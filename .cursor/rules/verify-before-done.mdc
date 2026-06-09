@@ -1,0 +1,15 @@
+---
+description: Required verification before declaring a code change complete.
+alwaysApply: true
+---
+
+# Verify before finishing
+
+Before saying a code change is done, run:
+
+- `yarn test:typecheck` — TypeScript (tsc).
+- `yarn test:code` — ESLint. CI runs with `--max-warnings=0`, so warnings fail too.
+
+Fix whatever they report. `yarn fix` auto-resolves most formatting/lint issues.
+For behavior changes, also run the relevant `yarn test` and update snapshots with
+`yarn test:update` when the change is intentional.

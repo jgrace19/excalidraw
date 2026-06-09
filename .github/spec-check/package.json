@@ -1,0 +1,13 @@
+{
+  "name": "spec-check",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CI check that verifies a PR adheres to its Confluence spec via a Cursor cloud agent and Atlassian MCP.",
+  "scripts": {
+    "check": "node check-spec-adherence.mjs"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.18"
+  }
+}

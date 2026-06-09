@@ -1,0 +1,24 @@
+---
+description: Use the Excalidraw Design System Figma library when creating or updating mockups, prototypes, screens, components, or any UI in Figma. Use whenever building a design from code or a description, or when the user mentions mockups, prototypes, or Figma.
+alwaysApply: false
+---
+
+# Use the Excalidraw Design System
+
+When creating or editing any mockup, prototype, screen, or component in Figma, build
+from the **Excalidraw Design System** library — do not invent components or hardcode
+values when a design-system equivalent exists.
+
+- Library file: https://www.figma.com/design/28waEFLbMoPxxQCw76guTq/Excalidraw-Design-System
+  (`fileKey: 28waEFLbMoPxxQCw76guTq`).
+- Before assembling anything, call `search_design_system` (and `get_libraries`) to find
+  existing components, variables, and styles, and reuse them.
+- Bind colors, spacing, radius, and typography to design-system **variables/tokens**
+  rather than raw hex or pixel values.
+- Compose screens from existing components; only create new components when the system
+  has no equivalent, and match its variant/state and token conventions.
+- Follow the `figma-generate-design` / `figma-generate-library` skills for the workflow,
+  and `figma-use` before any `use_figma` write.
+
+If a needed component is missing from the library, flag it rather than silently
+diverging from the system.

@@ -1,0 +1,14 @@
+{
+  "defaults": {
+    "cloudId": "564eb250-21c1-45d7-81f9-527d6bf705ad",
+    "siteUrl": "https://fe-anysphere-demo.atlassian.net",
+    "spaceIds": ["137986053"]
+  },
+  "tickets": {
+    "EX-4": {
+      "pageId": "136445954",
+      "title": "EX-4: Shape Shadow Weight",
+      "specUrl": "https://fe-anysphere-demo.atlassian.net/wiki/spaces/JE/pages/136445954/EX-4+Shape+Shadow+Weight"
+    }
+  }
+}

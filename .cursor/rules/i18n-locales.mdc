@@ -1,0 +1,22 @@
+---
+description: How to add and use user-facing strings. Covers the i18n t() helper and the Crowdin-managed locale files. Use when adding labels, tooltips, menu text, or any user-visible copy.
+globs: ["packages/excalidraw/locales/**", "packages/excalidraw/**/*.{ts,tsx}"]
+alwaysApply: false
+---
+
+# i18n / locales
+
+- Render user-facing text through the `t("...")` helper or `<Trans>`, never as hardcoded JSX strings.
+  Action `label` fields are i18n keys too (e.g. `label: "labels.toggleGrid"`).
+- Add new keys ONLY to `packages/excalidraw/locales/en.json`.
+- Never edit any other `*.json` file in `locales/` — they are generated from Crowdin
+  (see `packages/excalidraw/locales/README.md`). Editing them by hand will be overwritten.
+- `percentages.json` is also generated. Do not edit it.
+
+```ts
+// BAD
+<button>Toggle grid</button>
+
+// GOOD — key added to en.json, referenced by t()
+<button>{t("labels.toggleGrid")}</button>
+```

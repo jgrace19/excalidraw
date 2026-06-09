@@ -1,0 +1,15 @@
+---
+description: Test conventions for this repo (vitest, jsdom, snapshots).
+globs: ["**/*.test.{ts,tsx}", "**/tests/**", "**/__tests__/**"]
+alwaysApply: false
+---
+
+# Tests
+
+- Tests run on vitest with jsdom. `describe`, `it`, `expect`, and `vi` are GLOBALS
+  (configured via `types: ["vitest/globals"]`) — do not import them.
+- Co-locate tests as `<file>.test.ts(x)` next to the source, or in the package's
+  `tests/` / `__tests__/` directory. Follow the nearest existing example.
+- Do not hand-edit snapshot files. Regenerate with `yarn test:update` and review the diff
+  before committing.
+- Run a focused test with `yarn test <path-or-name>` while iterating.
