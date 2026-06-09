@@ -5,24 +5,17 @@ name: Spec adherence
 # A Cursor **cloud** agent clones the PR head, uses the **Atlassian MCP**
 # (OAuth via cursor.com/agents / team plugins — no Confluence API tokens here)
 # to find a Confluence page matching the ticket name in the branch, then judges
-# adherence. Discovery order: optional SPEC_PAGE_ID direct lookup, then CQL/Rovo
-# search, then getPagesInConfluenceSpace + getConfluencePageDescendants fallback
-# (needed for personal-space PRDs that CQL does not index).
+# adherence. Discovery order: repo spec-pages.json mapping + getConfluencePage,
+# then CQL/Rovo search, then getPagesInConfluenceSpace fallback.
 #
 # Required repository secret:
 #   CURSOR_API_KEY — Cursor **personal** user API key (cursor_...) recommended.
 #     Service-account keys cannot reuse per-user OAuth for Atlassian MCP.
+#     The key owner must authorize fe-anysphere-demo.atlassian.net at
+#     cursor.com/agents so the cloud agent can read Confluence specs.
 #
-# Optional repository variables (override .github/spec-check/ticket-spec-pages.json):
-#   SPEC_PAGE_ID              — Confluence page id for direct spec lookup
-#   CONFLUENCE_SPEC_SPACE_IDS — comma-separated space ids to scan first
-#   CONFLUENCE_CLOUD_ID       — Atlassian cloud UUID
-#
-# Ticket → page mappings can also live in ticket-spec-pages.json (no secrets).
-#
-# Prerequisite (outside this repo):
-#   Atlassian MCP authorized for the API key's user/team at cursor.com/agents
-#   or via Cursor marketplace team plugins.
+# Optional repository variables (override .github/spec-check/spec-pages.json):
+#   SPEC_PAGE_ID, CONFLUENCE_SPEC_SPACE_IDS, CONFLUENCE_CLOUD_ID
 #
 # When CURSOR_API_KEY is missing (e.g. on forks), the check skips.
 
@@ -58,6 +51,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Check PR against Confluence spec (cloud agent + Atlassian MCP)
+        id: spec-check
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,7 +62,52 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_BASE_REF: ${{ github.base_ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-          SPEC_PAGE_ID: ${{ vars.SPEC_PAGE_ID }}
-          CONFLUENCE_SPEC_SPACE_IDS: ${{ vars.CONFLUENCE_SPEC_SPACE_IDS }}
-          CONFLUENCE_CLOUD_ID: ${{ vars.CONFLUENCE_CLOUD_ID }}
+          SPEC_PAGE_ID: ${{ vars.SPEC_PAGE_ID || '136445954' }}
+          CONFLUENCE_SPEC_SPACE_IDS: ${{ vars.CONFLUENCE_SPEC_SPACE_IDS || '137986053' }}
+          CONFLUENCE_CLOUD_ID: ${{ vars.CONFLUENCE_CLOUD_ID || '564eb250-21c1-45d7-81f9-527d6bf705ad' }}
         run: node .github/spec-check/check-spec-adherence.mjs
+        continue-on-error: true
+
+      - name: Post PR comment with findings
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = '.github/spec-check/pr-comment.md';
+            if (!fs.existsSync(path)) {
+              core.info('No spec-adherence comment file; skipping PR comment.');
+              return;
+            }
+            const marker = '<!-- spec-adherence-check -->';
+            const body = fs.readFileSync(path, 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find((c) => c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated spec-adherence comment #${existing.id}`);
+            } else {
+              const { data: created } = await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+              core.info(`Posted spec-adherence comment #${created.id}`);
+            }
+
+      - name: Fail job if spec check failed
+        if: steps.spec-check.outcome == 'failure'
+        run: exit 1
